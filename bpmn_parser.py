@@ -2,6 +2,8 @@ from os import wait
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
+from graphviz.dot import node
+
 import graph_structure as gs
 
 def check_file(file_name):
@@ -53,23 +55,23 @@ class BpmnFile:
             # move below into new function
             if node_data:
                 try:
-                    name, time, variance, capacity, fail_chance = node_data.split(";")
+                    name, time, variance, capacity, fail_chance, gatetype = node_data.split(";")
                     time = float(time)
                     variance = float(variance)
                     capacity = int(capacity)
                     fail_chance = float(fail_chance)
-                    gatetype = str("OR")
+                    gatetype = str(gatetype)
                 except ValueError:
-                    raise ValueError(f'Invalid task format: "{node_data}". Expected "name;time;variance;capacity;failchance"')
+                    raise ValueError(f'Invalid task format: "{node_data}". Expected "name;time;variance;capacity;failchance;gatetype"')
             else:
                 name = child.tag.split("}")[-1]
                 time = 1.0
                 variance = 0.0
                 capacity = 1
                 fail_chance = 0.0
-                gatetype = "OR"
+                gatetype = "AND"
 
-            # TODO validate values
+            _validate_values(time, variance, capacity, fail_chance, gatetype)
 
             node_id = child.get("id") or ""
             node_to_add = gs.Node(
@@ -83,8 +85,18 @@ class BpmnFile:
 
             graph.add_node(node_to_add)
             if child.tag.endswith("startEvent"):
-               graph.start = node_to_add 
+                node_to_add.capacity = 99999
+                node_to_add.sample_time = 0
+                node_to_add.time_left = 0
+                node_to_add.sample_variance = 0
+                node_to_add.gateway_type = "AND"
+                graph.start = node_to_add 
             elif child.tag.endswith("endEvent"):
+                node_to_add.capacity = 99999
+                node_to_add.sample_time = 0
+                node_to_add.time_left = 0
+                node_to_add.sample_variance = 0
+                node_to_add.gateway_type = "AND"
                 graph.end = node_to_add
             
         for child in self.process:
@@ -102,3 +114,23 @@ class BpmnFile:
         
         return graph
 
+def _validate_values(time, variance, capacity, fail_chance, gatetype):
+    # time must be >= 0
+    if time < 0:
+        raise ValueError("BPMN Node time value must be greater than 0")
+    
+    # variance must be >= 0
+    if variance < 0:
+        raise ValueError("BPMN Node variance must be greater than 0")
+    
+    # capacity must be > 0
+    if capacity <= 0:
+        raise ValueError("BPMN Node capacity must be a positive integer")
+
+    # fail_chance must be in [0,1]
+    if not (0 <= fail_chance <= 1):
+        raise ValueError("BPMN Node fail chance must be in the range [0,1]")
+
+    # gatetype must be either AND, OR, or XOR
+    if gatetype.lower() not in ["and", "or", "xor"]:
+        raise ValueError("BPMN Node gateway type must be either 'and', 'or', or 'xor'")

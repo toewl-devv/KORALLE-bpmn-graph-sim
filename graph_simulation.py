@@ -2,8 +2,6 @@ import bpmn_parser
 from copy import deepcopy
 import random
 from time import sleep
-from graphviz import Digraph
-import pygame
 
 class Simulation():
     def __init__(self, file_name, n=1, t=0.0, timescale=1.0):
@@ -73,8 +71,13 @@ class Simulation():
                                         {"time": time, "process": i, "node": node.name, "event": "end"})
 
                             # reserve slot for each outgoing
-                            for out in node.outgoing:
-                                occupied[out.id] = occupied.get(out.id, 0) + 1
+                            if node.gateway_type == "AND":
+                                for out in node.outgoing:
+                                    occupied[out.id] = occupied.get(out.id, 0) + 1
+                            elif node.gateway_type == "XOR" or node.gateway_type == "OR":
+                                next_node = random.choice(node.outgoing)
+                                occupied[next_node.id] = occupied.get(next_node.id, 0) + 1
+
                         else:
                             graph.time_spent_waiting += 1
                             self.results.node_times_spent_waiting[node.id] += 1
@@ -96,8 +99,7 @@ class Simulation():
         self.results.reset()
 
         if visualise:
-            pygame.init()
-            screen = pygame.display.set_mode((1200, 800))
+            print("Visualisation not yet implemented :(")
 
         simulated_graphs = [deepcopy(self.graph) for _ in range(self.processes)]
 
@@ -116,13 +118,6 @@ class Simulation():
         # start the simulation
         time_step = 0
         while True:
-            if visualise:
-                self._visualise_graph(
-                    current_running_nodes,
-                    simulated_graphs[0], screen
-                    )
-                sleep(1.0 / self.timescale)
-
             if all(process == [graph.end] for process, graph in zip(current_running_nodes, simulated_graphs)):
                 break
             self._step_simulation(current_running_nodes,
@@ -132,41 +127,3 @@ class Simulation():
             time_step += 1
 
         self.results.time_steps_taken = time_step
-
-
-    def _visualise_graph(self, current_running_nodes, simulated_graph, screen):
-        dot = Digraph()
-
-        # Find which processes are currently on each node
-        running = {}
-
-        for process_id, nodes in enumerate(current_running_nodes):
-            for node in nodes:
-                running.setdefault(node.id, []).append(process_id)
-
-        # Add nodes
-        for node_id, node in simulated_graph.nodes.items():
-            if node_id in running:
-                processes = ", ".join(
-                    f"P{p}" for p in running[node_id]
-                )
-
-                dot.node(
-                    str(node_id),
-                    f"{node.name}\n[{processes}]",
-                    style="filled",
-                    fillcolor="lightblue"
-                )
-            else:
-                dot.node(str(node_id), node.name)
-
-        # Add edges
-        for node in simulated_graph.nodes.values():
-            for child in node.outgoing:
-                dot.edge(str(node.id), str(child.id))
-
-        dot.render("simulation", format="png", cleanup=True)
-        image = pygame.image.load("simulation.png")
-        screen.fill((255,255,255))
-        screen.blit(image, (0,0))
-        pygame.display.flip()
