@@ -1,0 +1,31 @@
+digraph {
+	Activity_1rlb9da [label="Task 1"]
+	Activity_15edu78 [label="Task 2.3"]
+	Activity_0bsr565 [label="Task 2.2"]
+	Activity_02whlbn [label="Task 2.1"]
+	Activity_09sbauh [label="Task 3"]
+	Activity_1jigsdx [label="Task 4"]
+	Activity_0trg2aq [label="Task 5"]
+	Activity_01f8ree [label=endpoint1]
+	Activity_0drdjgl [label="Task 6"]
+	Activity_12j9xul [label="Task 7.1"]
+	Activity_0m0xrzd [label="Task 7.2"]
+	Activity_1tq701b [label="Task 8
+[P0, P2]" fillcolor=lightblue style=filled]
+	Event_08k898a [label=startEvent]
+	Event_0vh0kld [label="endEvent
+[P1]" fillcolor=lightblue style=filled]
+	Activity_1rlb9da -> Activity_02whlbn
+	Activity_1rlb9da -> Activity_0bsr565
+	Activity_1rlb9da -> Activity_15edu78
+	Activity_15edu78 -> Activity_0trg2aq
+	Activity_0bsr565 -> Activity_09sbauh
+	Activity_0bsr565 -> Activity_1jigsdx
+	Activity_09sbauh -> Activity_0drdjgl
+	Activity_0trg2aq -> Activity_01f8ree
+	Activity_0drdjgl -> Activity_12j9xul
+	Activity_0drdjgl -> Activity_0m0xrzd
+	Activity_12j9xul -> Activity_1tq701b
+	Activity_1tq701b -> Event_0vh0kld
+	Event_08k898a -> Activity_1rlb9da
+}
