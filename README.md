@@ -45,6 +45,63 @@ python main.py
 
 An example BPMN process is provided in: `complexdiagram.bpmn`
 
+## Results and Event Logs
+
+After running a simulation, `simulate()` returns a `Results` object containing information about the simulation, including failures, waiting times, bottlenecks, and the event log.
+
+```python
+from graph_simulation import Simulation
+
+simulation = Simulation("complexdiagram.bpmn", n=10)
+
+results = simulation.simulate()
+
+print(results.summary())
+```
+
+The `Results` object can also be used directly to inspect individual metrics:
+
+```python
+print(results.time_steps_taken)
+print(results.fails)
+print(results.node_times_spent_waiting)
+print(results.edge_times_spent_waiting)
+
+print(results.find_bottlenecks())
+```
+
+### Event Log
+
+Every simulation produces an event log stored in `results.event_log`. Each event is represented as a dictionary containing information such as the simulation time, process, node, and event type.
+
+```python
+print(results.event_log)
+```
+
+For analysis with pandas, the event log can be converted directly into a DataFrame:
+
+```python
+import pandas as pd
+
+event_log = pd.DataFrame(results.event_log)
+
+print(event_log)
+```
+
+This produces a table similar to:
+
+| time | process | node       | event   |
+| ---: | ------: | ---------- | ------- |
+|    1 |       0 | Start      | start   |
+|    4 |       0 | Activity A | end     |
+|    5 |       0 | Activity B | start   |
+|    8 |       0 | Activity B | failure |
+|   12 |       0 | Activity B | end     |
+
+Some events contain additional information. For example, an `end` event records the waiting time and number of failures associated with that node. These are automatically included as additional columns when converting the log to a DataFrame.
+
+The resulting DataFrame can then be used with the usual pandas functionality for filtering, grouping, plotting, and further analysis.
+
 ## BPMN Requirements
 ### BPMN Task Parameters
 
