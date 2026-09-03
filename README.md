@@ -76,20 +76,15 @@ If these parameters are not specified, default values are used.
 ### BPMN Layout Requirements
 The BPMN diagram requires a starting and ending node. This is so the simulation knows where to start and end a process.
 The starting and ending node are automatically made to take 0 time and have infinite* capacity
-The BPMN diagram must NOT have a possiblity of a process never reaching the ending node.
+
+Furthermore, the BPMN diagram must NOT have a possiblity of a process never reaching the ending node.
 For example, if node A goes to B and C, and B goes to the end node, then A may not be an `XOR` node.
 
 ## Roadmap
 
 Planned improvements include:
 
-* Improve gateway behavior and probability handling
-* Make simulation time steps configurable
-* Improve the simulation clock
-* Improve process visualization
 * Extend BPMN element support
-
-## License
-
-No license has been specified yet.
+* Improve process visualization
+* Improve the simulation clock
 
