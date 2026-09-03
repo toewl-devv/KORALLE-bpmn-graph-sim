@@ -87,14 +87,14 @@ class BpmnFile:
             if child.tag.endswith("startEvent"):
                 node_to_add.capacity = 99999
                 node_to_add.sample_time = 0
-                node_to_add.time_left = 0
+                node_to_add.given_time = 0
                 node_to_add.sample_variance = 0
                 node_to_add.gateway_type = "AND"
                 graph.start = node_to_add 
             elif child.tag.endswith("endEvent"):
                 node_to_add.capacity = 99999
                 node_to_add.sample_time = 0
-                node_to_add.time_left = 0
+                node_to_add.given_time = 0
                 node_to_add.sample_variance = 0
                 node_to_add.gateway_type = "AND"
                 graph.end = node_to_add
