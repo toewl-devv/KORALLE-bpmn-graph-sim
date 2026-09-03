@@ -47,6 +47,8 @@ class Simulation():
             nodes_added = []
             for node, time_left in zip(process.current_running_nodes, process.time_left_on_nodes):
                 if node.id == self.graph.end.id:
+                    if process.end_time is None:
+                        process.end_time = time
                     pass
                 elif time_left <= 0:
                     # does it fail at the end?
@@ -113,14 +115,16 @@ class Simulation():
         time_step = 0.0
         while True:
             # check if all nodes are at the end
+            self._step_simulation(time=time_step)
+
             if all(process.current_running_nodes == [self.graph.end] for process in self.processes):
                 break
 
-            self._step_simulation(time=time_step)
 
             time_step += self.time_step_length
 
         self.results.time_steps_taken = time_step
+        self.results.processes_ran = self.processes
 
         return self.results
 
@@ -132,6 +136,7 @@ class Results():
         self.edge_times_spent_waiting = defaultdict(float)
         self.event_log = []
         self.graph = graph
+        self.processes_ran = []
 
     def reset(self):
         self.__init__(self.graph)
