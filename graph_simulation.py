@@ -2,6 +2,7 @@ import bpmn_parser
 from copy import deepcopy
 import random
 from time import sleep
+from collections import defaultdict
 
 class Simulation():
     def __init__(self, file_name, n=1, t=0.0, timescale=1.0):
@@ -22,18 +23,7 @@ class Simulation():
         self.timescale = timescale
         self.processes = n
         self.stagger = t
-        self.results = self.Results(self.graph)
-
-    class Results():
-        def __init__(self, graph):
-            self.fails = {node_id: 0 for node_id in graph.nodes}
-            self.time_steps_taken = 0
-            self.node_times_spent_waiting = {node_id: 0 for node_id in graph.nodes}
-            self.event_log = []
-            self.graph = graph
-
-        def reset(self):
-            self.__init__(self.graph)
+        self.results = Results(self.graph)
 
 
     def _step_simulation(self, current_running_nodes,
@@ -50,6 +40,7 @@ class Simulation():
                                                                 simulated_graphs,
                                                                 ends,
                                                                 finished_nodes)):
+            nodes_added = []
             for node in process:
                 if node == end[0]:
                     pass
@@ -68,29 +59,38 @@ class Simulation():
                             finished.append(node)
                             if time is not None:
                                 self.results.event_log.append(
-                                        {"time": time, "process": i, "node": node.name, "event": "end"})
+                                        {"time": time, "process": i, "node": node.name, "event": "end", "waited": self.results.node_times_spent_waiting[node.id], "fails": self.results.fails[node.id]})
 
                             # reserve slot for each outgoing
                             if node.gateway_type == "AND":
                                 for out in node.outgoing:
                                     occupied[out.id] = occupied.get(out.id, 0) + 1
+                                    nodes_added.append(out)
                             elif node.gateway_type == "XOR" or node.gateway_type == "OR":
                                 next_node = random.choice(node.outgoing)
                                 occupied[next_node.id] = occupied.get(next_node.id, 0) + 1
+                                nodes_added.append(next_node)
 
                         else:
                             graph.time_spent_waiting += 1
+
+                            for out in node.outgoing:
+                                if occupied.get(out.id, 0) >= out.capacity:
+                                    self.results.edge_times_spent_waiting[(node.id, out.id)] += 1
+
                             self.results.node_times_spent_waiting[node.id] += 1
                 else:
                     node.time_left -= 1
+
             for node in finished:
                 process.remove(node)
-                process.extend(node.outgoing)
                 for out in node.outgoing:
                     self.results.event_log.append(
                             {"time": time, "process": i, "node": out.name, "event": "start"})
 
-    def simulate(self, visualise=False):
+            process.extend(nodes_added)
+
+    def simulate(self, visualise=False, time_step_length=1.0):
         if self.graph.start == None:
             raise Exception("No starting node was found")
         if self.graph.end == None:
@@ -112,7 +112,6 @@ class Simulation():
             nodes[0].time_left += self.stagger * i
 
 
-        time_step = 0
         ends = [[graph.end] for graph in simulated_graphs]
 
         # start the simulation
@@ -124,6 +123,45 @@ class Simulation():
                                   simulated_graphs,
                                   ends,
                                   time=time_step + 1)
-            time_step += 1
+            time_step += time_step_length
 
         self.results.time_steps_taken = time_step
+
+        return self.results
+
+class Results():
+    def __init__(self, graph):
+        self.fails = {node_id: 0 for node_id in graph.nodes}
+        self.time_steps_taken = 0
+        self.node_times_spent_waiting = {node_id: 0 for node_id in graph.nodes}
+        self.edge_times_spent_waiting = defaultdict(float)
+        self.event_log = []
+        self.graph = graph
+
+    def reset(self):
+        self.__init__(self.graph)
+
+    def find_bottlenecks(self):
+        # We will score the bottleneck of a node by
+        # two parameters: how much time it wastes, and how many times it failed.
+        # We compute: fails * sum_{sources in node.incoming} (source.time_spent_waiting)
+        bottlenecks = []
+        for node in self.graph.nodes.values():
+            fails = self.fails[node.id]
+
+            time_wasted = sum(
+                self.edge_times_spent_waiting.get((source.id, node.id), 0)
+                for source in node.incoming
+            )
+
+            bottlenecks.append({"node_id": node.id, "node": node.name, "score": ((fails+1) * time_wasted + fails) / 100.0})
+
+        return sorted(bottlenecks, key=lambda x: x["score"], reverse=True)
+
+    def summary(self):
+        return {
+            "simulation_time": self.time_steps_taken,
+            "total_failures": sum(self.fails.values()),
+            "total_waiting_time": sum(self.edge_times_spent_waiting.values()),
+            "top 3 bottlenecks": [bn["node"] for bn in self.find_bottlenecks()[:3]]
+        }

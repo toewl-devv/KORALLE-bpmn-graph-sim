@@ -83,7 +83,7 @@ class BpmnFile:
                          fail_chance,
                          gatetype)
 
-            graph.add_node(node_to_add)
+
             if child.tag.endswith("startEvent"):
                 node_to_add.capacity = 99999
                 node_to_add.sample_time = 0
@@ -98,7 +98,9 @@ class BpmnFile:
                 node_to_add.sample_variance = 0
                 node_to_add.gateway_type = "AND"
                 graph.end = node_to_add
-            
+ 
+            graph.add_node(node_to_add)
+           
         for child in self.process:
             if not child.tag.endswith("sequenceFlow"):
                 continue

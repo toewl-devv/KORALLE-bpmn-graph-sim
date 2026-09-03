@@ -1,5 +1,3 @@
-'''
-'''
 import numpy as np
 
 class Node:
@@ -26,7 +24,6 @@ class Node:
         self.incoming = []
         
         self.time_left = sample_time
-        self.fails = 0
 
 class Graph:
     def __init__(self):
@@ -58,7 +55,7 @@ class Graph:
 
     def add_edge(self, a: Node, b: Node):
         a.outgoing.append(b)
-        a.incoming.append(a)
+        b.incoming.append(a)
 
     def get_node(self, node_id: str):
         return self.nodes[node_id]
